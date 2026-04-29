@@ -12,7 +12,14 @@ from tkinter import filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
 from pathlib import Path
 
-APP_DIR = Path(__file__).resolve().parent
+
+def get_app_dir():
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+APP_DIR = get_app_dir()
 SCRIPT_FILE = APP_DIR / "run_chatgpt_batch.py"
 SETTINGS_FILE = APP_DIR / "app_settings.json"
 
@@ -36,6 +43,12 @@ def enable_windows_dpi_awareness():
             ctypes.windll.user32.SetProcessDPIAware()
         except Exception:
             pass
+
+
+def run_packaged_worker():
+    import run_chatgpt_batch
+
+    run_chatgpt_batch.main()
 
 
 class ChatGPTBatchApp:
@@ -472,7 +485,7 @@ class ChatGPTBatchApp:
             messagebox.showwarning("Đang chạy", "Batch đang chạy.")
             return
 
-        if not SCRIPT_FILE.exists():
+        if not getattr(sys, "frozen", False) and not SCRIPT_FILE.exists():
             messagebox.showerror("Lỗi", f"Không thấy file:\n{SCRIPT_FILE}")
             return
 
@@ -488,6 +501,9 @@ class ChatGPTBatchApp:
         env["PYTHONIOENCODING"] = "utf-8"
         env["PYTHONUTF8"] = "1"
         env["PYTHONUNBUFFERED"] = "1"
+        browser_path = APP_DIR / "ms-playwright"
+        if getattr(sys, "frozen", False) or browser_path.exists():
+            env["PLAYWRIGHT_BROWSERS_PATH"] = str(browser_path)
 
         self.current_done = 0
         self.current_total = 0
@@ -502,8 +518,13 @@ class ChatGPTBatchApp:
 
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
+        if getattr(sys, "frozen", False):
+            command = [sys.executable, "--worker"]
+        else:
+            command = [sys.executable, "-u", str(SCRIPT_FILE)]
+
         self.proc = subprocess.Popen(
-            [sys.executable, "-u", str(SCRIPT_FILE)],
+            command,
             cwd=str(APP_DIR),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -702,6 +723,10 @@ class ChatGPTBatchApp:
 
 if __name__ == "__main__":
     enable_windows_dpi_awareness()
+    if "--worker" in sys.argv:
+        run_packaged_worker()
+        raise SystemExit(0)
+
     root = tk.Tk()
     app = ChatGPTBatchApp(root)
     root.mainloop()

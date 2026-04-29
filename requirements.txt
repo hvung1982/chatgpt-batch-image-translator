@@ -1,3 +1,4 @@
 playwright
 pygetwindow
 pywin32
+pyinstaller

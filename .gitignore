@@ -16,4 +16,8 @@ Upscale bang Upscayl/
 *.part
 *.log
 
+build/
+dist/
+*.spec
+
 app_settings.json
