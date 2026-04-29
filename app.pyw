@@ -42,8 +42,8 @@ class ChatGPTBatchApp:
     def __init__(self, root):
         self.root = root
         self.root.title("ChatGPT Batch Translator PRO")
-        self.root.geometry("1280x860")
-        self.root.minsize(1120, 760)
+        self.root.geometry("1280x840")
+        self.root.minsize(1120, 720)
 
         self.proc = None
         self.log_queue = queue.Queue()
@@ -74,14 +74,14 @@ class ChatGPTBatchApp:
             "Title.TLabel",
             background="#eef0f4",
             foreground="#111827",
-            font=("Segoe UI", 19, "bold")
+            font=("Segoe UI", 17, "bold")
         )
 
         self.style.configure(
             "Sub.TLabel",
             background="#eef0f4",
             foreground="#667085",
-            font=("Segoe UI", 10)
+            font=("Segoe UI", 9)
         )
 
         self.style.configure(
@@ -309,14 +309,14 @@ class ChatGPTBatchApp:
         main.pack(side="left", fill="both", expand=True)
 
         header = ttk.Frame(main, style="Main.TFrame")
-        header.pack(fill="x", pady=(0, 14))
+        header.pack(fill="x", pady=(0, 8))
 
         ttk.Label(header, text="Bảng điều khiển", style="Title.TLabel").pack(anchor="w")
         ttk.Label(
             header,
             text="Chạy batch ổn định, theo dõi tiến trình và can thiệp thủ công khi ChatGPT yêu cầu.",
             style="Sub.TLabel"
-        ).pack(anchor="w", pady=(4, 0))
+        ).pack(anchor="w", pady=(2, 0))
 
         self.image_var = tk.StringVar(value=self.settings["image_folder"])
         self.output_var = tk.StringVar(value=self.settings["download_folder"])
@@ -324,8 +324,8 @@ class ChatGPTBatchApp:
         self.batch_var = tk.StringVar(value=self.settings["batch_size"])
         self.start_from_var = tk.StringVar(value=self.settings.get("start_from", ""))
 
-        config_card = ttk.Frame(main, style="Card.TFrame", padding=(16, 12))
-        config_card.pack(fill="x", pady=(0, 10))
+        config_card = ttk.Frame(main, style="Card.TFrame", padding=(14, 10))
+        config_card.pack(fill="x", pady=(0, 8))
 
         ttk.Label(config_card, text="Cấu hình nguồn dữ liệu", style="SectionTitle.TLabel").grid(
             row=0, column=0, columnspan=3, sticky="w", pady=(0, 2)
@@ -334,32 +334,32 @@ class ChatGPTBatchApp:
             config_card,
             text="Giữ profile ChatGPT riêng để hạn chế đăng nhập lại và không đưa thư mục này lên GitHub.",
             style="SectionHint.TLabel"
-        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 8))
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 6))
 
         self.add_folder_row(config_card, "Thư mục ảnh gốc", self.image_var, 2)
         self.add_folder_row(config_card, "Thư mục lưu ảnh VN", self.output_var, 3)
         self.add_folder_row(config_card, "Profile ChatGPT", self.profile_var, 4)
 
         ttk.Label(config_card, text="Số ảnh mỗi lần", style="Field.TLabel").grid(
-            row=5, column=0, sticky="w", padx=(0, 12), pady=(8, 5)
+            row=5, column=0, sticky="w", padx=(0, 12), pady=(5, 3)
         )
-        ttk.Entry(config_card, textvariable=self.batch_var, width=12).grid(row=5, column=1, sticky="w", pady=(8, 5))
+        ttk.Entry(config_card, textvariable=self.batch_var, width=12).grid(row=5, column=1, sticky="w", pady=(5, 3))
 
         ttk.Label(config_card, text="Bắt đầu từ ảnh", style="Field.TLabel").grid(
-            row=6, column=0, sticky="w", padx=(0, 12), pady=5
+            row=6, column=0, sticky="w", padx=(0, 12), pady=3
         )
-        ttk.Entry(config_card, textvariable=self.start_from_var, width=24).grid(row=6, column=1, sticky="w", pady=5)
+        ttk.Entry(config_card, textvariable=self.start_from_var, width=24).grid(row=6, column=1, sticky="w", pady=3)
 
         ttk.Label(
             config_card,
             text="Ví dụ: 66, 122, 66_122 hoặc 66_122.jpg",
             style="SectionHint.TLabel"
-        ).grid(row=6, column=1, sticky="w", padx=(190, 0), pady=5)
+        ).grid(row=6, column=1, sticky="w", padx=(190, 0), pady=3)
 
         config_card.columnconfigure(1, weight=1)
 
-        action_card = ttk.Frame(main, style="Toolbar.TFrame", padding=(16, 10))
-        action_card.pack(fill="x", pady=(0, 10))
+        action_card = ttk.Frame(main, style="Toolbar.TFrame", padding=(14, 8))
+        action_card.pack(fill="x", pady=(0, 8))
 
         self.start_btn = ttk.Button(
             action_card,
@@ -394,30 +394,28 @@ class ChatGPTBatchApp:
         )
         self.stop_btn.pack(side="left", padx=8)
 
-        status_card = ttk.Frame(main, style="Card.TFrame", padding=(16, 12))
-        status_card.pack(fill="x", pady=(0, 10))
-
-        ttk.Label(status_card, text="Tiến trình batch", style="SectionTitle.TLabel").pack(anchor="w")
-
         self.progress_var = tk.DoubleVar(value=0)
+        progress_box = ttk.Frame(action_card, style="Toolbar.TFrame")
+        progress_box.pack(side="left", fill="x", expand=True, padx=(16, 0))
+
         ttk.Progressbar(
-            status_card,
+            progress_box,
             variable=self.progress_var,
             maximum=100,
             style="Horizontal.TProgressbar"
-        ).pack(fill="x", pady=(10, 6))
+        ).pack(fill="x", pady=(0, 4))
 
         self.progress_label = tk.StringVar(value="Tiến trình: 0%")
-        ttk.Label(status_card, textvariable=self.progress_label, style="SectionHint.TLabel").pack(anchor="w")
+        ttk.Label(progress_box, textvariable=self.progress_label, style="SectionHint.TLabel").pack(anchor="w")
 
-        log_card = ttk.Frame(main, style="Card.TFrame", padding=(16, 12))
+        log_card = ttk.Frame(main, style="Card.TFrame", padding=(14, 10))
         log_card.pack(fill="both", expand=True)
 
         ttk.Label(
             log_card,
             text="Nhật ký xử lý",
             style="SectionTitle.TLabel"
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(anchor="w", pady=(0, 6))
 
         self.log_text = ScrolledText(
             log_card,
@@ -432,19 +430,19 @@ class ChatGPTBatchApp:
             borderwidth=0,
             padx=12,
             pady=12,
-            height=12
+            height=16
         )
         self.log_text.pack(fill="both", expand=True)
 
     def add_folder_row(self, parent, label, var, row):
-        ttk.Label(parent, text=label, style="Field.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 12), pady=5)
-        ttk.Entry(parent, textvariable=var).grid(row=row, column=1, sticky="ew", pady=5)
+        ttk.Label(parent, text=label, style="Field.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 12), pady=3)
+        ttk.Entry(parent, textvariable=var).grid(row=row, column=1, sticky="ew", pady=3)
         ttk.Button(
             parent,
             text="Chọn",
             command=lambda: self.choose_folder(var),
             style="Gray.TButton"
-        ).grid(row=row, column=2, padx=(10, 0), pady=5)
+        ).grid(row=row, column=2, padx=(10, 0), pady=3)
 
     def choose_folder(self, var):
         folder = filedialog.askdirectory()
