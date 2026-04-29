@@ -298,6 +298,34 @@ class ChatGPTBatchApp:
             justify="left"
         ).pack(anchor="w", pady=(6, 0))
 
+        self.progress_var = tk.DoubleVar(value=0)
+        progress_box = tk.Frame(sidebar, bg="#ffffff", padx=12, pady=12)
+        progress_box.pack(fill="x", pady=(0, 14))
+        tk.Label(
+            progress_box,
+            text="Tiến trình",
+            bg="#ffffff",
+            fg="#667085",
+            font=("Segoe UI", 9, "bold")
+        ).pack(anchor="w")
+        ttk.Progressbar(
+            progress_box,
+            variable=self.progress_var,
+            maximum=100,
+            style="Horizontal.TProgressbar"
+        ).pack(fill="x", pady=(8, 5))
+
+        self.progress_label = tk.StringVar(value="Tiến trình: 0%")
+        tk.Label(
+            progress_box,
+            textvariable=self.progress_label,
+            bg="#ffffff",
+            fg="#667085",
+            font=("Segoe UI", 9),
+            wraplength=190,
+            justify="left"
+        ).pack(anchor="w")
+
         ttk.Label(sidebar, text="Thao tác nhanh", style="SidebarSub.TLabel").pack(anchor="w", pady=(8, 8))
         ttk.Button(sidebar, text="Mở kết quả", command=self.open_output, style="Ghost.TButton").pack(fill="x", pady=3)
         ttk.Button(sidebar, text="Xuất lỗi", command=self.export_failed, style="Ghost.TButton").pack(fill="x", pady=3)
@@ -393,20 +421,6 @@ class ChatGPTBatchApp:
             style="Red.TButton"
         )
         self.stop_btn.pack(side="left", padx=8)
-
-        self.progress_var = tk.DoubleVar(value=0)
-        progress_box = ttk.Frame(action_card, style="Toolbar.TFrame")
-        progress_box.pack(side="left", fill="x", expand=True, padx=(16, 0))
-
-        ttk.Progressbar(
-            progress_box,
-            variable=self.progress_var,
-            maximum=100,
-            style="Horizontal.TProgressbar"
-        ).pack(fill="x", pady=(0, 4))
-
-        self.progress_label = tk.StringVar(value="Tiến trình: 0%")
-        ttk.Label(progress_box, textvariable=self.progress_label, style="SectionHint.TLabel").pack(anchor="w")
 
         log_card = ttk.Frame(main, style="Card.TFrame", padding=(14, 10))
         log_card.pack(fill="both", expand=True)
