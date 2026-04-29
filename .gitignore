@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+chatgpt_auto_profile/
+.tmp.drivedownload/
+.tmp.driveupload/
+
+images/
+images_vn/
+Kvant/
+Kvant VN/
+Upscale bang Upscayl/
+
+*.part
+*.log
+
+app_settings.json
