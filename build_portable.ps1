@@ -9,6 +9,20 @@ Set-Location $Root
 $PythonExe = $null
 $PythonPrefix = @()
 
+function Test-PythonExe {
+    param([string]$Path)
+
+    if (-not $Path) {
+        return $false
+    }
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    & $Path -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" *> $null
+    return ($LASTEXITCODE -eq 0)
+}
+
 $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
 if ($PythonCommand) {
     $PythonExe = $PythonCommand.Source
@@ -21,12 +35,71 @@ if ($PythonCommand) {
 }
 
 if (-not $PythonExe) {
-    throw "Python was not found. Install Python 3 first, then run this script again."
+    $registryRoots = @(
+        "Registry::HKEY_CURRENT_USER\Software\Python\PythonCore",
+        "Registry::HKEY_LOCAL_MACHINE\Software\Python\PythonCore",
+        "Registry::HKEY_LOCAL_MACHINE\Software\WOW6432Node\Python\PythonCore"
+    )
+
+    foreach ($registryRoot in $registryRoots) {
+        if ($PythonExe) {
+            break
+        }
+        if (-not (Test-Path $registryRoot)) {
+            continue
+        }
+
+        $versions = Get-ChildItem $registryRoot -ErrorAction SilentlyContinue |
+            Sort-Object PSChildName -Descending
+
+        foreach ($version in $versions) {
+            $installPathKey = Join-Path $version.PSPath "InstallPath"
+            try {
+                $installPath = (Get-ItemProperty -Path $installPathKey -ErrorAction Stop)."(default)"
+                $candidate = Join-Path $installPath "python.exe"
+                if (Test-PythonExe $candidate) {
+                    $PythonExe = $candidate
+                    break
+                }
+            } catch {
+                continue
+            }
+        }
+    }
+}
+
+if (-not $PythonExe) {
+    $candidateRoots = @(
+        "$env:LOCALAPPDATA\Programs\Python",
+        "$env:ProgramFiles\Python*",
+        "${env:ProgramFiles(x86)}\Python*"
+    )
+
+    foreach ($candidateRoot in $candidateRoots) {
+        if ($PythonExe) {
+            break
+        }
+
+        Get-ChildItem -Path $candidateRoot -Filter python.exe -Recurse -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            ForEach-Object {
+                if (-not $PythonExe -and (Test-PythonExe $_.FullName)) {
+                    $script:PythonExe = $_.FullName
+                }
+            }
+    }
+}
+
+if (-not $PythonExe) {
+    throw "Python 3.9+ was not found. If Python is installed, enable 'Add python.exe to PATH' or install the official Python from python.org."
 }
 
 function Invoke-Python {
     & $PythonExe @PythonPrefix @args
 }
+
+Write-Host "==> Using Python:"
+Write-Host $PythonExe
 
 $PythonRoot = Split-Path -Parent $PythonExe
 $TclLibrary = Join-Path $PythonRoot "tcl\tcl8.6"
