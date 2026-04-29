@@ -28,8 +28,8 @@ class ChatGPTBatchApp:
     def __init__(self, root):
         self.root = root
         self.root.title("ChatGPT Batch Translator PRO")
-        self.root.geometry("1080x780")
-        self.root.minsize(980, 700)
+        self.root.geometry("1180x780")
+        self.root.minsize(1080, 720)
 
         self.proc = None
         self.log_queue = queue.Queue()
@@ -43,26 +43,73 @@ class ChatGPTBatchApp:
         self.poll_log_queue()
 
     def setup_style(self):
-        self.root.configure(bg="#f3f4f6")
+        self.root.configure(bg="#eef0f4")
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
 
-        self.style.configure("TFrame", background="#f3f4f6")
+        self.style.configure("TFrame", background="#eef0f4")
+        self.style.configure("App.TFrame", background="#eef0f4")
+        self.style.configure("Chrome.TFrame", background="#f7f7fa")
+        self.style.configure("Sidebar.TFrame", background="#e8ebf0")
+        self.style.configure("Main.TFrame", background="#eef0f4")
         self.style.configure("Card.TFrame", background="#ffffff", relief="flat")
+        self.style.configure("Toolbar.TFrame", background="#ffffff", relief="flat")
 
         self.style.configure(
             "Title.TLabel",
-            background="#f3f4f6",
+            background="#eef0f4",
             foreground="#111827",
-            font=("Segoe UI", 18, "bold")
+            font=("Segoe UI", 20, "bold")
         )
 
         self.style.configure(
             "Sub.TLabel",
-            background="#f3f4f6",
-            foreground="#6b7280",
+            background="#eef0f4",
+            foreground="#667085",
             font=("Segoe UI", 10)
+        )
+
+        self.style.configure(
+            "ChromeTitle.TLabel",
+            background="#f7f7fa",
+            foreground="#111827",
+            font=("Segoe UI", 10, "bold")
+        )
+
+        self.style.configure(
+            "SidebarTitle.TLabel",
+            background="#e8ebf0",
+            foreground="#111827",
+            font=("Segoe UI", 15, "bold")
+        )
+
+        self.style.configure(
+            "SidebarSub.TLabel",
+            background="#e8ebf0",
+            foreground="#667085",
+            font=("Segoe UI", 9)
+        )
+
+        self.style.configure(
+            "SectionTitle.TLabel",
+            background="#ffffff",
+            foreground="#111827",
+            font=("Segoe UI", 11, "bold")
+        )
+
+        self.style.configure(
+            "SectionHint.TLabel",
+            background="#ffffff",
+            foreground="#667085",
+            font=("Segoe UI", 9)
+        )
+
+        self.style.configure(
+            "Field.TLabel",
+            background="#ffffff",
+            foreground="#344054",
+            font=("Segoe UI", 9, "bold")
         )
 
         self.style.configure(
@@ -72,63 +119,92 @@ class ChatGPTBatchApp:
             font=("Segoe UI", 10)
         )
 
-        self.style.configure("TEntry", font=("Segoe UI", 10), padding=6)
+        self.style.configure(
+            "TEntry",
+            fieldbackground="#fbfcfe",
+            background="#fbfcfe",
+            foreground="#111827",
+            bordercolor="#d0d5dd",
+            lightcolor="#d0d5dd",
+            darkcolor="#d0d5dd",
+            font=("Segoe UI", 10),
+            padding=8
+        )
 
         self.style.configure(
             "Blue.TButton",
-            background="#2563eb",
+            background="#0a84ff",
             foreground="white",
             font=("Segoe UI", 10, "bold"),
-            padding=(12, 8)
+            padding=(16, 9),
+            borderwidth=0
         )
 
-        self.style.map("Blue.TButton", background=[("active", "#1d4ed8"), ("disabled", "#93c5fd")])
+        self.style.map("Blue.TButton", background=[("active", "#006edb"), ("disabled", "#93c5fd")])
 
         self.style.configure(
             "Purple.TButton",
-            background="#7c3aed",
+            background="#5856d6",
             foreground="white",
             font=("Segoe UI", 10, "bold"),
-            padding=(12, 8)
+            padding=(16, 9),
+            borderwidth=0
         )
 
-        self.style.map("Purple.TButton", background=[("active", "#6d28d9"), ("disabled", "#c4b5fd")])
+        self.style.map("Purple.TButton", background=[("active", "#4745b8"), ("disabled", "#c4b5fd")])
 
         self.style.configure(
             "Green.TButton",
-            background="#16a34a",
+            background="#34c759",
             foreground="white",
             font=("Segoe UI", 10, "bold"),
-            padding=(12, 8)
+            padding=(16, 9),
+            borderwidth=0
         )
 
-        self.style.map("Green.TButton", background=[("active", "#15803d"), ("disabled", "#86efac")])
+        self.style.map("Green.TButton", background=[("active", "#248a3d"), ("disabled", "#a6e7b7")])
 
         self.style.configure(
             "Red.TButton",
-            background="#dc2626",
+            background="#ff3b30",
             foreground="white",
             font=("Segoe UI", 10, "bold"),
-            padding=(12, 8)
+            padding=(16, 9),
+            borderwidth=0
         )
 
-        self.style.map("Red.TButton", background=[("active", "#b91c1c")])
+        self.style.map("Red.TButton", background=[("active", "#d92d20")])
 
         self.style.configure(
             "Gray.TButton",
-            background="#e5e7eb",
+            background="#f2f4f7",
             foreground="#111827",
             font=("Segoe UI", 10),
-            padding=(10, 8)
+            padding=(12, 8),
+            borderwidth=0
         )
 
-        self.style.map("Gray.TButton", background=[("active", "#d1d5db")])
+        self.style.map("Gray.TButton", background=[("active", "#e4e7ec")])
+
+        self.style.configure(
+            "Ghost.TButton",
+            background="#ffffff",
+            foreground="#344054",
+            font=("Segoe UI", 10),
+            padding=(12, 8),
+            borderwidth=0
+        )
+
+        self.style.map("Ghost.TButton", background=[("active", "#f2f4f7")])
 
         self.style.configure(
             "Horizontal.TProgressbar",
-            troughcolor="#e5e7eb",
-            background="#2563eb",
-            thickness=14
+            troughcolor="#e4e7ec",
+            background="#0a84ff",
+            thickness=10,
+            bordercolor="#e4e7ec",
+            lightcolor="#0a84ff",
+            darkcolor="#0a84ff"
         )
 
     def load_settings(self):
@@ -154,26 +230,79 @@ class ChatGPTBatchApp:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def build_ui(self):
-        outer = ttk.Frame(self.root, padding=16)
+        outer = ttk.Frame(self.root, style="App.TFrame")
         outer.pack(fill="both", expand=True)
 
-        header = ttk.Frame(outer)
+        chrome = ttk.Frame(outer, style="Chrome.TFrame", padding=(18, 10))
+        chrome.pack(fill="x")
+
+        dots = tk.Frame(chrome, bg="#f7f7fa")
+        dots.pack(side="left", padx=(0, 14))
+        for color in ("#ff5f57", "#febc2e", "#28c840"):
+            tk.Label(dots, text="●", fg=color, bg="#f7f7fa", font=("Segoe UI", 11)).pack(side="left", padx=2)
+
+        ttk.Label(
+            chrome,
+            text="ChatGPT Batch Translator PRO",
+            style="ChromeTitle.TLabel"
+        ).pack(side="left")
+
+        body = ttk.Frame(outer, style="App.TFrame", padding=(16, 16, 16, 16))
+        body.pack(fill="both", expand=True)
+
+        sidebar = ttk.Frame(body, style="Sidebar.TFrame", padding=(18, 18))
+        sidebar.pack(side="left", fill="y", padx=(0, 14))
+        sidebar.pack_propagate(False)
+        sidebar.configure(width=250)
+
+        ttk.Label(sidebar, text="Dịch sách tự động", style="SidebarTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            sidebar,
+            text="Upload ảnh, dịch nội dung, tạo ảnh Việt hóa và quản lý batch.",
+            style="SidebarSub.TLabel",
+            wraplength=210,
+            justify="left"
+        ).pack(anchor="w", pady=(6, 20))
+
+        self.status_var = tk.StringVar(value="Sẵn sàng")
+        status_box = tk.Frame(sidebar, bg="#ffffff", padx=12, pady=12)
+        status_box.pack(fill="x", pady=(0, 14))
+        tk.Label(
+            status_box,
+            text="Trạng thái",
+            bg="#ffffff",
+            fg="#667085",
+            font=("Segoe UI", 9, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            status_box,
+            textvariable=self.status_var,
+            bg="#ffffff",
+            fg="#111827",
+            font=("Segoe UI", 10, "bold"),
+            wraplength=190,
+            justify="left"
+        ).pack(anchor="w", pady=(6, 0))
+
+        ttk.Label(sidebar, text="Thao tác nhanh", style="SidebarSub.TLabel").pack(anchor="w", pady=(8, 8))
+        ttk.Button(sidebar, text="Mở kết quả", command=self.open_output, style="Ghost.TButton").pack(fill="x", pady=3)
+        ttk.Button(sidebar, text="Xuất lỗi", command=self.export_failed, style="Ghost.TButton").pack(fill="x", pady=3)
+        ttk.Button(sidebar, text="Copy lỗi", command=self.copy_failed_retry, style="Ghost.TButton").pack(fill="x", pady=3)
+        ttk.Button(sidebar, text="Lưu cấu hình", command=self.save_and_notify, style="Ghost.TButton").pack(fill="x", pady=3)
+        ttk.Button(sidebar, text="Xóa log", command=self.clear_log, style="Ghost.TButton").pack(fill="x", pady=3)
+
+        main = ttk.Frame(body, style="Main.TFrame")
+        main.pack(side="left", fill="both", expand=True)
+
+        header = ttk.Frame(main, style="Main.TFrame")
         header.pack(fill="x", pady=(0, 14))
 
+        ttk.Label(header, text="Bảng điều khiển", style="Title.TLabel").pack(anchor="w")
         ttk.Label(
             header,
-            text="ChatGPT Batch Translator PRO",
-            style="Title.TLabel"
-        ).pack(anchor="w")
-
-        ttk.Label(
-            header,
-            text="Tự động dịch ảnh, tạo ảnh tiếng Việt, tải kết quả và quản lý lỗi theo batch.",
+            text="Chạy batch ổn định, theo dõi tiến trình và can thiệp thủ công khi ChatGPT yêu cầu.",
             style="Sub.TLabel"
         ).pack(anchor="w", pady=(4, 0))
-
-        config_card = ttk.Frame(outer, style="Card.TFrame", padding=14)
-        config_card.pack(fill="x", pady=(0, 12))
 
         self.image_var = tk.StringVar(value=self.settings["image_folder"])
         self.output_var = tk.StringVar(value=self.settings["download_folder"])
@@ -181,25 +310,41 @@ class ChatGPTBatchApp:
         self.batch_var = tk.StringVar(value=self.settings["batch_size"])
         self.start_from_var = tk.StringVar(value=self.settings.get("start_from", ""))
 
-        self.add_folder_row(config_card, "Thư mục ảnh gốc", self.image_var, 0)
-        self.add_folder_row(config_card, "Thư mục lưu ảnh VN", self.output_var, 1)
-        self.add_folder_row(config_card, "Profile ChatGPT", self.profile_var, 2)
+        config_card = ttk.Frame(main, style="Card.TFrame", padding=(18, 16))
+        config_card.pack(fill="x", pady=(0, 12))
 
-        ttk.Label(config_card, text="Số ảnh mỗi lần").grid(row=3, column=0, sticky="w", padx=(0, 10), pady=8)
-        ttk.Entry(config_card, textvariable=self.batch_var, width=12).grid(row=3, column=1, sticky="w", pady=8)
+        ttk.Label(config_card, text="Cấu hình nguồn dữ liệu", style="SectionTitle.TLabel").grid(
+            row=0, column=0, columnspan=3, sticky="w", pady=(0, 2)
+        )
+        ttk.Label(
+            config_card,
+            text="Giữ profile ChatGPT riêng để hạn chế đăng nhập lại và không đưa thư mục này lên GitHub.",
+            style="SectionHint.TLabel"
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 12))
 
-        ttk.Label(config_card, text="Bắt đầu từ ảnh").grid(row=4, column=0, sticky="w", padx=(0, 10), pady=8)
-        ttk.Entry(config_card, textvariable=self.start_from_var, width=24).grid(row=4, column=1, sticky="w", pady=8)
+        self.add_folder_row(config_card, "Thư mục ảnh gốc", self.image_var, 2)
+        self.add_folder_row(config_card, "Thư mục lưu ảnh VN", self.output_var, 3)
+        self.add_folder_row(config_card, "Profile ChatGPT", self.profile_var, 4)
+
+        ttk.Label(config_card, text="Số ảnh mỗi lần", style="Field.TLabel").grid(
+            row=5, column=0, sticky="w", padx=(0, 12), pady=(10, 8)
+        )
+        ttk.Entry(config_card, textvariable=self.batch_var, width=12).grid(row=5, column=1, sticky="w", pady=(10, 8))
+
+        ttk.Label(config_card, text="Bắt đầu từ ảnh", style="Field.TLabel").grid(
+            row=6, column=0, sticky="w", padx=(0, 12), pady=8
+        )
+        ttk.Entry(config_card, textvariable=self.start_from_var, width=24).grid(row=6, column=1, sticky="w", pady=8)
 
         ttk.Label(
             config_card,
-            text="Ví dụ: 66 hoặc 122 hoặc 66_122 hoặc 66_122.jpg",
-            foreground="#6b7280"
-        ).grid(row=4, column=1, sticky="w", padx=(180, 0), pady=8)
+            text="Ví dụ: 66, 122, 66_122 hoặc 66_122.jpg",
+            style="SectionHint.TLabel"
+        ).grid(row=6, column=1, sticky="w", padx=(190, 0), pady=8)
 
         config_card.columnconfigure(1, weight=1)
 
-        action_card = ttk.Frame(outer, style="Card.TFrame", padding=14)
+        action_card = ttk.Frame(main, style="Toolbar.TFrame", padding=(18, 14))
         action_card.pack(fill="x", pady=(0, 12))
 
         self.start_btn = ttk.Button(
@@ -235,20 +380,10 @@ class ChatGPTBatchApp:
         )
         self.stop_btn.pack(side="left", padx=8)
 
-        tools = ttk.Frame(action_card, style="Card.TFrame")
-        tools.pack(side="right")
-
-        ttk.Button(tools, text="Mở kết quả", command=self.open_output, style="Gray.TButton").pack(side="left", padx=4)
-        ttk.Button(tools, text="Xuất lỗi", command=self.export_failed, style="Gray.TButton").pack(side="left", padx=4)
-        ttk.Button(tools, text="Copy lỗi", command=self.copy_failed_retry, style="Gray.TButton").pack(side="left", padx=4)
-        ttk.Button(tools, text="Lưu cấu hình", command=self.save_and_notify, style="Gray.TButton").pack(side="left", padx=4)
-        ttk.Button(tools, text="Xóa log", command=self.clear_log, style="Gray.TButton").pack(side="left", padx=4)
-
-        status_card = ttk.Frame(outer, style="Card.TFrame", padding=14)
+        status_card = ttk.Frame(main, style="Card.TFrame", padding=(18, 16))
         status_card.pack(fill="x", pady=(0, 12))
 
-        self.status_var = tk.StringVar(value="Sẵn sàng")
-        ttk.Label(status_card, textvariable=self.status_var, font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        ttk.Label(status_card, text="Tiến trình batch", style="SectionTitle.TLabel").pack(anchor="w")
 
         self.progress_var = tk.DoubleVar(value=0)
         ttk.Progressbar(
@@ -259,32 +394,33 @@ class ChatGPTBatchApp:
         ).pack(fill="x", pady=(10, 6))
 
         self.progress_label = tk.StringVar(value="Tiến trình: 0%")
-        ttk.Label(status_card, textvariable=self.progress_label).pack(anchor="w")
+        ttk.Label(status_card, textvariable=self.progress_label, style="SectionHint.TLabel").pack(anchor="w")
 
-        log_card = ttk.Frame(outer, style="Card.TFrame", padding=12)
+        log_card = ttk.Frame(main, style="Card.TFrame", padding=(18, 14))
         log_card.pack(fill="both", expand=True)
 
         ttk.Label(
             log_card,
             text="Nhật ký xử lý",
-            font=("Segoe UI", 11, "bold")
+            style="SectionTitle.TLabel"
         ).pack(anchor="w", pady=(0, 8))
 
         self.log_text = ScrolledText(
             log_card,
             wrap="word",
             font=("Consolas", 10),
-            bg="#0f172a",
-            fg="#e5e7eb",
-            insertbackground="white",
+            bg="#101828",
+            fg="#eef4ff",
+            insertbackground="#ffffff",
             relief="flat",
-            padx=10,
-            pady=10
+            borderwidth=0,
+            padx=12,
+            pady=12
         )
         self.log_text.pack(fill="both", expand=True)
 
     def add_folder_row(self, parent, label, var, row):
-        ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 10), pady=8)
+        ttk.Label(parent, text=label, style="Field.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 12), pady=8)
         ttk.Entry(parent, textvariable=var).grid(row=row, column=1, sticky="ew", pady=8)
         ttk.Button(
             parent,
