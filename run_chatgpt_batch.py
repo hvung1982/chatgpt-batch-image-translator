@@ -236,6 +236,9 @@ def get_next_batch(images):
                 pending.append(img)
         return pending[:BATCH_SIZE]
 
+    if RUN_MODE == "force":
+        return images[:BATCH_SIZE]
+
     for img in images:
         st = latest.get(img.name, {}).get("status", "")
 
