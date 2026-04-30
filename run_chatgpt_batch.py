@@ -9,10 +9,14 @@ from pathlib import Path
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-try:
-    import pygetwindow as gw
-    import win32process
-except Exception:
+if os.name == "nt":
+    try:
+        import pygetwindow as gw
+        import win32process
+    except Exception:
+        gw = None
+        win32process = None
+else:
     gw = None
     win32process = None
 
@@ -26,12 +30,26 @@ except Exception:
 
 
 BASE_DIR = Path(__file__).resolve().parent
-SETTINGS_FILE = BASE_DIR / "app_settings.json"
+APP_NAME = "ChatGPT Batch Translator"
+
+
+def is_macos():
+    return sys.platform == "darwin"
+
+
+def get_user_data_dir():
+    if is_macos():
+        return Path.home() / "Library" / "Application Support" / APP_NAME
+    return BASE_DIR
+
+
+USER_DATA_DIR = get_user_data_dir()
+SETTINGS_FILE = USER_DATA_DIR / "app_settings.json"
 
 DEFAULT_CONFIG = {
-    "image_folder": str(BASE_DIR / "images"),
-    "download_folder": str(BASE_DIR / "images_vn"),
-    "profile_dir": str(BASE_DIR / "chatgpt_auto_profile"),
+    "image_folder": str((USER_DATA_DIR if is_macos() else BASE_DIR) / "images"),
+    "download_folder": str((USER_DATA_DIR if is_macos() else BASE_DIR) / "images_vn"),
+    "profile_dir": str(USER_DATA_DIR / "chatgpt_auto_profile"),
     "batch_size": "5",
     "start_from": ""
 }
@@ -254,6 +272,9 @@ def get_next_batch(images):
 
 
 def minimize_own_browser(context):
+    if os.name != "nt":
+        return
+
     if gw is None or win32process is None:
         print("⚠️ Chưa cài pygetwindow/pywin32, bỏ qua thu nhỏ browser.")
         return

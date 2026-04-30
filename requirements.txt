@@ -1,4 +1,4 @@
 playwright
-pygetwindow
-pywin32
+pygetwindow; platform_system == "Windows"
+pywin32; platform_system == "Windows"
 pyinstaller

@@ -7,6 +7,7 @@ import shutil
 import threading
 import subprocess
 import ctypes
+import signal
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from tkinter.scrolledtext import ScrolledText
@@ -21,12 +22,26 @@ def get_app_dir():
 
 APP_DIR = get_app_dir()
 SCRIPT_FILE = APP_DIR / "run_chatgpt_batch.py"
-SETTINGS_FILE = APP_DIR / "app_settings.json"
+APP_NAME = "ChatGPT Batch Translator"
+
+
+def is_macos():
+    return sys.platform == "darwin"
+
+
+def get_user_data_dir():
+    if is_macos():
+        return Path.home() / "Library" / "Application Support" / APP_NAME
+    return APP_DIR
+
+
+USER_DATA_DIR = get_user_data_dir()
+SETTINGS_FILE = USER_DATA_DIR / "app_settings.json"
 
 DEFAULT_SETTINGS = {
-    "image_folder": str(APP_DIR / "images"),
-    "download_folder": str(APP_DIR / "images_vn"),
-    "profile_dir": str(APP_DIR / "chatgpt_auto_profile"),
+    "image_folder": str((USER_DATA_DIR if is_macos() else APP_DIR) / "images"),
+    "download_folder": str((USER_DATA_DIR if is_macos() else APP_DIR) / "images_vn"),
+    "profile_dir": str(USER_DATA_DIR / "chatgpt_auto_profile"),
     "batch_size": "5",
     "start_from": ""
 }
@@ -70,6 +85,8 @@ class ChatGPTBatchApp:
         self.poll_log_queue()
 
     def setup_style(self):
+        self.ui_font = ".AppleSystemUIFont" if is_macos() else "Segoe UI"
+        self.mono_font = "Menlo" if is_macos() else "Cascadia Mono"
         self.root.configure(bg="#eef0f4")
 
         self.style = ttk.Style()
@@ -87,63 +104,63 @@ class ChatGPTBatchApp:
             "Title.TLabel",
             background="#eef0f4",
             foreground="#111827",
-            font=("Segoe UI", 17, "bold")
+            font=(self.ui_font, 17, "bold")
         )
 
         self.style.configure(
             "Sub.TLabel",
             background="#eef0f4",
             foreground="#667085",
-            font=("Segoe UI", 9)
+            font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "ChromeTitle.TLabel",
             background="#f7f7fa",
             foreground="#111827",
-            font=("Segoe UI", 10, "bold")
+            font=(self.ui_font, 10, "bold")
         )
 
         self.style.configure(
             "SidebarTitle.TLabel",
             background="#e8ebf0",
             foreground="#111827",
-            font=("Segoe UI", 14, "bold")
+            font=(self.ui_font, 14, "bold")
         )
 
         self.style.configure(
             "SidebarSub.TLabel",
             background="#e8ebf0",
             foreground="#667085",
-            font=("Segoe UI", 9)
+            font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "SectionTitle.TLabel",
             background="#ffffff",
             foreground="#111827",
-            font=("Segoe UI", 10, "bold")
+            font=(self.ui_font, 10, "bold")
         )
 
         self.style.configure(
             "SectionHint.TLabel",
             background="#ffffff",
             foreground="#667085",
-            font=("Segoe UI", 9)
+            font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "Field.TLabel",
             background="#ffffff",
             foreground="#344054",
-            font=("Segoe UI", 9)
+            font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "TLabel",
             background="#ffffff",
             foreground="#111827",
-            font=("Segoe UI", 10)
+            font=(self.ui_font, 10)
         )
 
         self.style.configure(
@@ -154,7 +171,7 @@ class ChatGPTBatchApp:
             bordercolor="#d0d5dd",
             lightcolor="#d0d5dd",
             darkcolor="#d0d5dd",
-            font=("Segoe UI", 10),
+            font=(self.ui_font, 10),
             padding=8
         )
 
@@ -162,7 +179,7 @@ class ChatGPTBatchApp:
             "Blue.TButton",
             background="#0a84ff",
             foreground="white",
-            font=("Segoe UI", 10, "bold"),
+            font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
@@ -173,7 +190,7 @@ class ChatGPTBatchApp:
             "Purple.TButton",
             background="#5856d6",
             foreground="white",
-            font=("Segoe UI", 10, "bold"),
+            font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
@@ -184,7 +201,7 @@ class ChatGPTBatchApp:
             "Green.TButton",
             background="#34c759",
             foreground="white",
-            font=("Segoe UI", 10, "bold"),
+            font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
@@ -195,7 +212,7 @@ class ChatGPTBatchApp:
             "Red.TButton",
             background="#ff3b30",
             foreground="white",
-            font=("Segoe UI", 10, "bold"),
+            font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
@@ -206,7 +223,7 @@ class ChatGPTBatchApp:
             "Gray.TButton",
             background="#f2f4f7",
             foreground="#111827",
-            font=("Segoe UI", 10),
+            font=(self.ui_font, 10),
             padding=(12, 8),
             borderwidth=0
         )
@@ -217,7 +234,7 @@ class ChatGPTBatchApp:
             "Ghost.TButton",
             background="#ffffff",
             foreground="#344054",
-            font=("Segoe UI", 10),
+            font=(self.ui_font, 10),
             padding=(12, 8),
             borderwidth=0
         )
@@ -253,6 +270,7 @@ class ChatGPTBatchApp:
             "start_from": self.start_from_var.get()
         }
 
+        SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -266,7 +284,7 @@ class ChatGPTBatchApp:
         dots = tk.Frame(chrome, bg="#f7f7fa")
         dots.pack(side="left", padx=(0, 14))
         for color in ("#ff5f57", "#febc2e", "#28c840"):
-            tk.Label(dots, text="●", fg=color, bg="#f7f7fa", font=("Segoe UI", 11)).pack(side="left", padx=2)
+            tk.Label(dots, text="●", fg=color, bg="#f7f7fa", font=(self.ui_font, 11)).pack(side="left", padx=2)
 
         ttk.Label(
             chrome,
@@ -274,20 +292,25 @@ class ChatGPTBatchApp:
             style="ChromeTitle.TLabel"
         ).pack(side="left")
 
-        body = ttk.Frame(outer, style="App.TFrame", padding=(14, 14, 14, 14))
+        body = ttk.Frame(outer, style="App.TFrame", padding=(12, 12, 12, 12))
         body.pack(fill="both", expand=True)
 
         sidebar = ttk.Frame(body, style="Sidebar.TFrame", padding=(16, 16))
-        sidebar.pack(side="left", fill="y", padx=(0, 14))
+        sidebar.pack(side="left", fill="y", padx=(0, 12))
         sidebar.pack_propagate(False)
-        sidebar.configure(width=250)
+        sidebar.configure(width=320)
 
-        ttk.Label(sidebar, text="Dịch sách tự động", style="SidebarTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            sidebar,
+            text="Dịch sách tự động",
+            style="SidebarTitle.TLabel",
+            wraplength=280
+        ).pack(anchor="w")
         ttk.Label(
             sidebar,
             text="Upload ảnh, dịch nội dung, tạo ảnh Việt hóa và quản lý batch.",
             style="SidebarSub.TLabel",
-            wraplength=210,
+            wraplength=280,
             justify="left"
         ).pack(anchor="w", pady=(6, 16))
 
@@ -299,15 +322,15 @@ class ChatGPTBatchApp:
             text="Trạng thái",
             bg="#ffffff",
             fg="#667085",
-            font=("Segoe UI", 9, "bold")
+            font=(self.ui_font, 9, "bold")
         ).pack(anchor="w")
         tk.Label(
             status_box,
             textvariable=self.status_var,
             bg="#ffffff",
             fg="#111827",
-            font=("Segoe UI", 10, "bold"),
-            wraplength=190,
+            font=(self.ui_font, 10, "bold"),
+            wraplength=260,
             justify="left"
         ).pack(anchor="w", pady=(6, 0))
 
@@ -319,7 +342,7 @@ class ChatGPTBatchApp:
             text="Tiến trình",
             bg="#ffffff",
             fg="#667085",
-            font=("Segoe UI", 9, "bold")
+            font=(self.ui_font, 9, "bold")
         ).pack(anchor="w")
         ttk.Progressbar(
             progress_box,
@@ -334,8 +357,8 @@ class ChatGPTBatchApp:
             textvariable=self.progress_label,
             bg="#ffffff",
             fg="#667085",
-            font=("Segoe UI", 9),
-            wraplength=190,
+            font=(self.ui_font, 9),
+            wraplength=260,
             justify="left"
         ).pack(anchor="w")
 
@@ -350,7 +373,7 @@ class ChatGPTBatchApp:
         main.pack(side="left", fill="both", expand=True)
 
         header = ttk.Frame(main, style="Main.TFrame")
-        header.pack(fill="x", pady=(0, 8))
+        header.pack(fill="x", pady=(0, 6))
 
         ttk.Label(header, text="Bảng điều khiển", style="Title.TLabel").pack(anchor="w")
         ttk.Label(
@@ -365,8 +388,8 @@ class ChatGPTBatchApp:
         self.batch_var = tk.StringVar(value=self.settings["batch_size"])
         self.start_from_var = tk.StringVar(value=self.settings.get("start_from", ""))
 
-        config_card = ttk.Frame(main, style="Card.TFrame", padding=(14, 10))
-        config_card.pack(fill="x", pady=(0, 8))
+        config_card = ttk.Frame(main, style="Card.TFrame", padding=(14, 8))
+        config_card.pack(fill="x", pady=(0, 6))
 
         ttk.Label(config_card, text="Cấu hình nguồn dữ liệu", style="SectionTitle.TLabel").grid(
             row=0, column=0, columnspan=3, sticky="w", pady=(0, 2)
@@ -395,12 +418,12 @@ class ChatGPTBatchApp:
             config_card,
             text="Ví dụ: 66, 122, 66_122 hoặc 66_122.jpg",
             style="SectionHint.TLabel"
-        ).grid(row=6, column=1, sticky="w", padx=(190, 0), pady=3)
+        ).grid(row=7, column=1, sticky="w", pady=(0, 3))
 
         config_card.columnconfigure(1, weight=1)
 
-        action_card = ttk.Frame(main, style="Toolbar.TFrame", padding=(14, 8))
-        action_card.pack(fill="x", pady=(0, 8))
+        action_card = ttk.Frame(main, style="Toolbar.TFrame", padding=(14, 7))
+        action_card.pack(fill="x", pady=(0, 6))
 
         self.start_btn = ttk.Button(
             action_card,
@@ -442,12 +465,12 @@ class ChatGPTBatchApp:
             log_card,
             text="Nhật ký xử lý",
             style="SectionTitle.TLabel"
-        ).pack(anchor="w", pady=(0, 6))
+        ).pack(anchor="w", pady=(0, 5))
 
         self.log_text = ScrolledText(
             log_card,
             wrap="word",
-            font=("Cascadia Mono", 10),
+            font=(self.mono_font, 10),
             bg="#f8fafc",
             fg="#182230",
             insertbackground="#111827",
@@ -457,7 +480,7 @@ class ChatGPTBatchApp:
             borderwidth=0,
             padx=12,
             pady=12,
-            height=16
+            height=20
         )
         self.log_text.pack(fill="both", expand=True)
 
@@ -517,25 +540,29 @@ class ChatGPTBatchApp:
         self.continue_btn.config(state="disabled")
 
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        start_new_session = os.name != "nt"
 
         if getattr(sys, "frozen", False):
             command = [sys.executable, "--worker"]
         else:
             command = [sys.executable, "-u", str(SCRIPT_FILE)]
 
-        self.proc = subprocess.Popen(
-            command,
-            cwd=str(APP_DIR),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            stdin=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            bufsize=1,
-            creationflags=creationflags
-        )
+        popen_kwargs = {
+            "cwd": str(APP_DIR),
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "stdin": subprocess.PIPE,
+            "text": True,
+            "encoding": "utf-8",
+            "errors": "replace",
+            "env": env,
+            "bufsize": 1,
+            "creationflags": creationflags,
+        }
+        if start_new_session:
+            popen_kwargs["start_new_session"] = True
+
+        self.proc = subprocess.Popen(command, **popen_kwargs)
 
         threading.Thread(target=self.read_process_output, daemon=True).start()
 
@@ -619,7 +646,14 @@ class ChatGPTBatchApp:
                     creationflags=subprocess.CREATE_NO_WINDOW
                 )
             else:
-                self.proc.terminate()
+                try:
+                    os.killpg(pid, signal.SIGTERM)
+                    self.proc.wait(timeout=8)
+                except Exception:
+                    try:
+                        os.killpg(pid, signal.SIGKILL)
+                    except Exception:
+                        self.proc.kill()
 
             self.status_var.set("Đã dừng")
             self.log("\n=== ĐÃ DỪNG VÀ KILL SẠCH PROCESS CON ===\n")
@@ -629,7 +663,12 @@ class ChatGPTBatchApp:
     def open_output(self):
         folder = self.output_var.get()
         os.makedirs(folder, exist_ok=True)
-        os.startfile(folder)
+        if os.name == "nt":
+            os.startfile(folder)
+        elif is_macos():
+            subprocess.run(["open", folder], check=False)
+        else:
+            subprocess.run(["xdg-open", folder], check=False)
 
     def export_failed(self):
         progress_file = Path(self.output_var.get()) / "progress.csv"
