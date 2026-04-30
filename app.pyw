@@ -280,14 +280,14 @@ class ChatGPTBatchApp:
         sidebar = ttk.Frame(body, style="Sidebar.TFrame", padding=(16, 16))
         sidebar.pack(side="left", fill="y", padx=(0, 14))
         sidebar.pack_propagate(False)
-        sidebar.configure(width=250)
+        sidebar.configure(width=280)
 
         ttk.Label(sidebar, text="Dịch sách tự động", style="SidebarTitle.TLabel").pack(anchor="w")
         ttk.Label(
             sidebar,
             text="Upload ảnh, dịch nội dung, tạo ảnh Việt hóa và quản lý batch.",
             style="SidebarSub.TLabel",
-            wraplength=210,
+            wraplength=235,
             justify="left"
         ).pack(anchor="w", pady=(6, 16))
 
@@ -307,7 +307,7 @@ class ChatGPTBatchApp:
             bg="#ffffff",
             fg="#111827",
             font=("Segoe UI", 10, "bold"),
-            wraplength=190,
+            wraplength=220,
             justify="left"
         ).pack(anchor="w", pady=(6, 0))
 
@@ -335,7 +335,7 @@ class ChatGPTBatchApp:
             bg="#ffffff",
             fg="#667085",
             font=("Segoe UI", 9),
-            wraplength=190,
+            wraplength=220,
             justify="left"
         ).pack(anchor="w")
 
@@ -395,7 +395,7 @@ class ChatGPTBatchApp:
             config_card,
             text="Ví dụ: 66, 122, 66_122 hoặc 66_122.jpg",
             style="SectionHint.TLabel"
-        ).grid(row=6, column=1, sticky="w", padx=(190, 0), pady=3)
+        ).grid(row=7, column=1, sticky="w", pady=(0, 3))
 
         config_card.columnconfigure(1, weight=1)
 
