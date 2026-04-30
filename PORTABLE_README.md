@@ -24,6 +24,16 @@ Nen gui ca thu muc `ChatGPT Batch Translator` cho nguoi dung, khong chi gui rien
 4. Bam `Chay batch moi`.
 5. Lan dau app se mo browser de dang nhap ChatGPT.
 
+## Theme
+
+App co 3 che do giao dien:
+
+- `Sang`
+- `Toi`
+- `He thong`
+
+Che do `He thong` tu doc theme Windows trong Settings va tu cap nhat khi he dieu hanh doi Light/Dark Mode. Lua chon nay duoc luu trong `app_settings.json` rieng tren tung may.
+
 ## Khong dong goi cac thu muc nay cua may ban
 
 - `chatgpt_auto_profile`
