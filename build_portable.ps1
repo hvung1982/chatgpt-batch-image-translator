@@ -130,8 +130,10 @@ if (Test-Path $DistApp) {
 Write-Host "==> Building portable app..."
 Invoke-Python -m PyInstaller `
     --noconfirm `
+    --clean `
     --onedir `
     --windowed `
+    --noupx `
     --name "$AppName" `
     --collect-all playwright `
     --hidden-import run_chatgpt_batch `

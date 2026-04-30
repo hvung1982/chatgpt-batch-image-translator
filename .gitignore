@@ -18,6 +18,8 @@ Upscale bang Upscayl/
 
 build/
 dist/
+build_rebuild/
+dist_rebuild/
 *.spec
 
 app_settings.json

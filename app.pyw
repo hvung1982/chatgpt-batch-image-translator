@@ -441,6 +441,14 @@ class ChatGPTBatchApp:
         )
         self.retry_btn.pack(side="left", padx=8)
 
+        self.force_btn = ttk.Button(
+            action_card,
+            text="Chạy lại ảnh này",
+            command=lambda: self.start("force"),
+            style="Gray.TButton"
+        )
+        self.force_btn.pack(side="left", padx=8)
+
         self.continue_btn = ttk.Button(
             action_card,
             text="Tiếp tục sau can thiệp",
@@ -508,6 +516,13 @@ class ChatGPTBatchApp:
             messagebox.showwarning("Đang chạy", "Batch đang chạy.")
             return
 
+        if mode == "force" and not self.start_from_var.get().strip():
+            messagebox.showwarning(
+                "Thiếu số ảnh",
+                "Nhập số ảnh cần chạy lại vào ô 'Bắt đầu từ ảnh' trước."
+            )
+            return
+
         if not getattr(sys, "frozen", False) and not SCRIPT_FILE.exists():
             messagebox.showerror("Lỗi", f"Không thấy file:\n{SCRIPT_FILE}")
             return
@@ -537,6 +552,7 @@ class ChatGPTBatchApp:
         self.status_var.set("Đang chạy...")
         self.start_btn.config(state="disabled")
         self.retry_btn.config(state="disabled")
+        self.force_btn.config(state="disabled")
         self.continue_btn.config(state="disabled")
 
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
@@ -586,6 +602,7 @@ class ChatGPTBatchApp:
                     self.status_var.set("Đã dừng / hoàn tất")
                     self.start_btn.config(state="normal")
                     self.retry_btn.config(state="normal")
+                    self.force_btn.config(state="normal")
                     self.continue_btn.config(state="disabled")
                 else:
                     self.log(msg)
