@@ -23,6 +23,8 @@ Ban macOS giu workflow nhu ban Windows:
 - Nut mo thu muc output dung lenh macOS `open`.
 - Nut dung batch kill ca process group tren macOS de dong worker/Playwright gon hon.
 - Chuc nang thu nho browser bang `pygetwindow/pywin32` chi chay tren Windows va duoc bo qua tren Mac.
+- Giao dien co 3 che do theme: `Sang`, `Toi`, va `He thong`. Che do `He thong` tu doc Light/Dark Mode cua macOS va tu cap nhat khi he dieu hanh doi giao dien.
+- Theme macOS dung bang mau va cac lop surface theo huong Liquid Glass/Tahoe: nen, sidebar va card co do tuong phan mem hon de tuong thich voi he giao dien moi. Tkinter khong ho tro NSVisualEffectView nen day la lop giao dien tuong thich, khong phai material blur goc cua macOS.
 
 ## Build file .app bang PyInstaller
 

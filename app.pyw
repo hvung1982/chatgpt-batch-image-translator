@@ -10,8 +10,75 @@ import ctypes
 import signal
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from tkinter.scrolledtext import ScrolledText
 from pathlib import Path
+
+
+THEME_LABELS = {
+    "system": "Hệ thống",
+    "light": "Sáng",
+    "dark": "Tối",
+}
+
+THEME_VALUES = {label: value for value, label in THEME_LABELS.items()}
+
+THEMES = {
+    "light": {
+        "window": "#eef0f4",
+        "chrome": "#f7f7fa",
+        "sidebar": "#e8ebf0",
+        "surface": "#ffffff",
+        "surface_alt": "#fbfcfe",
+        "surface_hover": "#f2f4f7",
+        "text": "#111827",
+        "muted": "#667085",
+        "field_text": "#344054",
+        "border": "#d0d5dd",
+        "progress_trough": "#e4e7ec",
+        "log_bg": "#f8fafc",
+        "log_text": "#182230",
+        "selection_bg": "#c7ddff",
+        "selection_text": "#111827",
+        "blue": "#0a84ff",
+        "blue_active": "#006edb",
+        "blue_disabled": "#93c5fd",
+        "purple": "#5856d6",
+        "purple_active": "#4745b8",
+        "purple_disabled": "#c4b5fd",
+        "green": "#34c759",
+        "green_active": "#248a3d",
+        "green_disabled": "#a6e7b7",
+        "red": "#ff3b30",
+        "red_active": "#d92d20",
+    },
+    "dark": {
+        "window": "#15171c",
+        "chrome": "#1d2027",
+        "sidebar": "#20242c",
+        "surface": "#252932",
+        "surface_alt": "#1f232b",
+        "surface_hover": "#303540",
+        "text": "#f4f7fb",
+        "muted": "#aab3c2",
+        "field_text": "#d8dee8",
+        "border": "#3f4654",
+        "progress_trough": "#333946",
+        "log_bg": "#171a20",
+        "log_text": "#e6ebf2",
+        "selection_bg": "#265fbd",
+        "selection_text": "#ffffff",
+        "blue": "#0a84ff",
+        "blue_active": "#3b9cff",
+        "blue_disabled": "#305f91",
+        "purple": "#7c79ff",
+        "purple_active": "#9391ff",
+        "purple_disabled": "#55518a",
+        "green": "#30d158",
+        "green_active": "#58df78",
+        "green_disabled": "#3c7a4d",
+        "red": "#ff453a",
+        "red_active": "#ff6961",
+    },
+}
 
 
 def get_app_dir():
@@ -43,7 +110,8 @@ DEFAULT_SETTINGS = {
     "download_folder": str((USER_DATA_DIR if is_macos() else APP_DIR) / "images_vn"),
     "profile_dir": str(USER_DATA_DIR / "chatgpt_auto_profile"),
     "batch_size": "5",
-    "start_from": ""
+    "start_from": "",
+    "theme": "system"
 }
 
 
@@ -58,6 +126,43 @@ def enable_windows_dpi_awareness():
             ctypes.windll.user32.SetProcessDPIAware()
         except Exception:
             pass
+
+
+def get_windows_system_theme():
+    try:
+        import winreg
+
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+        ) as key:
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            return "light" if value else "dark"
+    except Exception:
+        return "light"
+
+
+def get_macos_system_theme():
+    try:
+        result = subprocess.run(
+            ["defaults", "read", "-g", "AppleInterfaceStyle"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=1,
+            check=False,
+        )
+        return "dark" if "dark" in result.stdout.lower() else "light"
+    except Exception:
+        return "light"
+
+
+def get_system_theme():
+    if is_macos():
+        return get_macos_system_theme()
+    if os.name == "nt":
+        return get_windows_system_theme()
+    return "light"
 
 
 def run_packaged_worker():
@@ -79,177 +184,312 @@ class ChatGPTBatchApp:
         self.current_total = 0
 
         self.settings = self.load_settings()
+        self.theme_mode = self.normalize_theme(self.settings.get("theme"))
+        self.current_theme = None
+        self.tk_theme_widgets = []
+        self.log_text = None
+        self.log_scrollbar = None
+        self.theme_var = tk.StringVar(value=THEME_LABELS[self.theme_mode])
 
         self.setup_style()
         self.build_ui()
+        self.watch_system_theme()
         self.poll_log_queue()
 
     def setup_style(self):
         self.ui_font = ".AppleSystemUIFont" if is_macos() else "Segoe UI"
         self.mono_font = "Menlo" if is_macos() else "Cascadia Mono"
-        self.root.configure(bg="#eef0f4")
 
         self.style = ttk.Style()
         self.style.theme_use("clam")
+        self.apply_theme_styles()
 
-        self.style.configure("TFrame", background="#eef0f4")
-        self.style.configure("App.TFrame", background="#eef0f4")
-        self.style.configure("Chrome.TFrame", background="#f7f7fa")
-        self.style.configure("Sidebar.TFrame", background="#e8ebf0")
-        self.style.configure("Main.TFrame", background="#eef0f4")
-        self.style.configure("Card.TFrame", background="#ffffff", relief="flat")
-        self.style.configure("Toolbar.TFrame", background="#ffffff", relief="flat")
+    def normalize_theme(self, value):
+        return value if value in THEME_LABELS else "system"
+
+    def resolve_theme(self):
+        return get_system_theme() if self.theme_mode == "system" else self.theme_mode
+
+    def palette(self):
+        return THEMES[self.resolve_theme()]
+
+    def apply_theme_styles(self):
+        palette = self.palette()
+        self.current_theme = self.resolve_theme()
+        self.root.configure(bg=palette["window"])
+
+        self.style.configure("TFrame", background=palette["window"])
+        self.style.configure("App.TFrame", background=palette["window"])
+        self.style.configure("Chrome.TFrame", background=palette["chrome"])
+        self.style.configure("Sidebar.TFrame", background=palette["sidebar"])
+        self.style.configure("Main.TFrame", background=palette["window"])
+        self.style.configure("Card.TFrame", background=palette["surface"], relief="flat")
+        self.style.configure("Toolbar.TFrame", background=palette["surface"], relief="flat")
 
         self.style.configure(
             "Title.TLabel",
-            background="#eef0f4",
-            foreground="#111827",
+            background=palette["window"],
+            foreground=palette["text"],
             font=(self.ui_font, 17, "bold")
         )
 
         self.style.configure(
             "Sub.TLabel",
-            background="#eef0f4",
-            foreground="#667085",
+            background=palette["window"],
+            foreground=palette["muted"],
             font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "ChromeTitle.TLabel",
-            background="#f7f7fa",
-            foreground="#111827",
+            background=palette["chrome"],
+            foreground=palette["text"],
             font=(self.ui_font, 10, "bold")
         )
 
         self.style.configure(
             "SidebarTitle.TLabel",
-            background="#e8ebf0",
-            foreground="#111827",
+            background=palette["sidebar"],
+            foreground=palette["text"],
             font=(self.ui_font, 14, "bold")
         )
 
         self.style.configure(
             "SidebarSub.TLabel",
-            background="#e8ebf0",
-            foreground="#667085",
+            background=palette["sidebar"],
+            foreground=palette["muted"],
             font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "SectionTitle.TLabel",
-            background="#ffffff",
-            foreground="#111827",
+            background=palette["surface"],
+            foreground=palette["text"],
             font=(self.ui_font, 10, "bold")
         )
 
         self.style.configure(
             "SectionHint.TLabel",
-            background="#ffffff",
-            foreground="#667085",
+            background=palette["surface"],
+            foreground=palette["muted"],
             font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "Field.TLabel",
-            background="#ffffff",
-            foreground="#344054",
+            background=palette["surface"],
+            foreground=palette["field_text"],
             font=(self.ui_font, 9)
         )
 
         self.style.configure(
             "TLabel",
-            background="#ffffff",
-            foreground="#111827",
+            background=palette["surface"],
+            foreground=palette["text"],
             font=(self.ui_font, 10)
         )
 
         self.style.configure(
             "TEntry",
-            fieldbackground="#fbfcfe",
-            background="#fbfcfe",
-            foreground="#111827",
-            bordercolor="#d0d5dd",
-            lightcolor="#d0d5dd",
-            darkcolor="#d0d5dd",
+            fieldbackground=palette["surface_alt"],
+            background=palette["surface_alt"],
+            foreground=palette["text"],
+            bordercolor=palette["border"],
+            lightcolor=palette["border"],
+            darkcolor=palette["border"],
+            insertcolor=palette["text"],
             font=(self.ui_font, 10),
             padding=8
         )
 
+        self.style.map(
+            "TEntry",
+            fieldbackground=[("disabled", palette["surface_hover"]), ("readonly", palette["surface_alt"])],
+            foreground=[("disabled", palette["muted"])],
+        )
+
+        self.style.configure(
+            "Theme.TCombobox",
+            fieldbackground=palette["surface_alt"],
+            background=palette["surface_alt"],
+            foreground=palette["text"],
+            bordercolor=palette["border"],
+            arrowcolor=palette["muted"],
+            selectbackground=palette["surface_alt"],
+            selectforeground=palette["text"],
+            padding=5,
+        )
+
+        self.style.map(
+            "Theme.TCombobox",
+            fieldbackground=[("readonly", palette["surface_alt"])],
+            foreground=[("readonly", palette["text"])],
+            selectbackground=[("readonly", palette["surface_alt"])],
+            selectforeground=[("readonly", palette["text"])],
+        )
+
         self.style.configure(
             "Blue.TButton",
-            background="#0a84ff",
+            background=palette["blue"],
             foreground="white",
             font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
 
-        self.style.map("Blue.TButton", background=[("active", "#006edb"), ("disabled", "#93c5fd")])
+        self.style.map("Blue.TButton", background=[("active", palette["blue_active"]), ("disabled", palette["blue_disabled"])])
 
         self.style.configure(
             "Purple.TButton",
-            background="#5856d6",
+            background=palette["purple"],
             foreground="white",
             font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
 
-        self.style.map("Purple.TButton", background=[("active", "#4745b8"), ("disabled", "#c4b5fd")])
+        self.style.map("Purple.TButton", background=[("active", palette["purple_active"]), ("disabled", palette["purple_disabled"])])
 
         self.style.configure(
             "Green.TButton",
-            background="#34c759",
+            background=palette["green"],
             foreground="white",
             font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
 
-        self.style.map("Green.TButton", background=[("active", "#248a3d"), ("disabled", "#a6e7b7")])
+        self.style.map("Green.TButton", background=[("active", palette["green_active"]), ("disabled", palette["green_disabled"])])
 
         self.style.configure(
             "Red.TButton",
-            background="#ff3b30",
+            background=palette["red"],
             foreground="white",
             font=(self.ui_font, 10, "bold"),
             padding=(14, 8),
             borderwidth=0
         )
 
-        self.style.map("Red.TButton", background=[("active", "#d92d20")])
+        self.style.map("Red.TButton", background=[("active", palette["red_active"])])
 
         self.style.configure(
             "Gray.TButton",
-            background="#f2f4f7",
-            foreground="#111827",
+            background=palette["surface_hover"],
+            foreground=palette["text"],
             font=(self.ui_font, 10),
             padding=(12, 8),
             borderwidth=0
         )
 
-        self.style.map("Gray.TButton", background=[("active", "#e4e7ec")])
+        self.style.map("Gray.TButton", background=[("active", palette["border"])])
 
         self.style.configure(
             "Ghost.TButton",
-            background="#ffffff",
-            foreground="#344054",
+            background=palette["surface"],
+            foreground=palette["field_text"],
             font=(self.ui_font, 10),
             padding=(12, 8),
             borderwidth=0
         )
 
-        self.style.map("Ghost.TButton", background=[("active", "#f2f4f7")])
+        self.style.map("Ghost.TButton", background=[("active", palette["surface_hover"])])
 
         self.style.configure(
             "Horizontal.TProgressbar",
-            troughcolor="#e4e7ec",
-            background="#0a84ff",
+            troughcolor=palette["progress_trough"],
+            background=palette["blue"],
             thickness=10,
-            bordercolor="#e4e7ec",
-            lightcolor="#0a84ff",
-            darkcolor="#0a84ff"
+            bordercolor=palette["progress_trough"],
+            lightcolor=palette["blue"],
+            darkcolor=palette["blue"]
         )
+
+        self.style.configure(
+            "Log.Vertical.TScrollbar",
+            background=palette["surface_hover"],
+            troughcolor=palette["log_bg"],
+            bordercolor=palette["log_bg"],
+            arrowcolor=palette["muted"],
+            lightcolor=palette["surface_hover"],
+            darkcolor=palette["surface_hover"],
+        )
+        self.style.map(
+            "Log.Vertical.TScrollbar",
+            background=[("active", palette["border"])],
+            arrowcolor=[("active", palette["text"])],
+        )
+
+        for widget, role in self.tk_theme_widgets:
+            self.apply_tk_theme(widget, role)
+
+        if self.log_text is not None:
+            self.log_text.configure(
+                bg=palette["log_bg"],
+                fg=palette["log_text"],
+                insertbackground=palette["text"],
+                selectbackground=palette["selection_bg"],
+                selectforeground=palette["selection_text"],
+            )
+            self.apply_log_scrollbar_theme()
+
+    def apply_log_scrollbar_theme(self):
+        palette = self.palette()
+        if self.log_scrollbar is None:
+            return
+
+        try:
+            self.log_scrollbar.configure(style="Log.Vertical.TScrollbar")
+        except tk.TclError:
+            pass
+
+    def apply_tk_theme(self, widget, role):
+        palette = self.palette()
+        backgrounds = {
+            "chrome": palette["chrome"],
+            "sidebar": palette["sidebar"],
+            "surface": palette["surface"],
+        }
+        foregrounds = {
+            "muted": palette["muted"],
+            "text": palette["text"],
+        }
+        options = {}
+        if role in backgrounds:
+            options["bg"] = backgrounds[role]
+        elif role in foregrounds:
+            options["fg"] = foregrounds[role]
+        if options:
+            try:
+                widget.configure(**options)
+            except tk.TclError:
+                pass
+
+    def register_tk_theme(self, widget, role):
+        self.tk_theme_widgets.append((widget, role))
+        self.apply_tk_theme(widget, role)
+        return widget
+
+    def themed_frame(self, parent, role, **kwargs):
+        frame = tk.Frame(parent, **kwargs)
+        return self.register_tk_theme(frame, role)
+
+    def themed_label(self, parent, bg_role, fg_role, **kwargs):
+        label = tk.Label(parent, **kwargs)
+        self.register_tk_theme(label, bg_role)
+        self.register_tk_theme(label, fg_role)
+        return label
+
+    def on_theme_changed(self, _event=None):
+        self.theme_mode = THEME_VALUES.get(self.theme_var.get(), "system")
+        self.apply_theme_styles()
+        self.save_settings()
+
+    def watch_system_theme(self):
+        if self.theme_mode == "system":
+            resolved = self.resolve_theme()
+            if resolved != self.current_theme:
+                self.apply_theme_styles()
+        self.root.after(3000, self.watch_system_theme)
 
     def load_settings(self):
         if SETTINGS_FILE.exists():
@@ -267,7 +507,8 @@ class ChatGPTBatchApp:
             "download_folder": self.output_var.get(),
             "profile_dir": self.profile_var.get(),
             "batch_size": self.batch_var.get(),
-            "start_from": self.start_from_var.get()
+            "start_from": self.start_from_var.get(),
+            "theme": self.theme_mode
         }
 
         SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -281,16 +522,35 @@ class ChatGPTBatchApp:
         chrome = ttk.Frame(outer, style="Chrome.TFrame", padding=(18, 9))
         chrome.pack(fill="x")
 
-        dots = tk.Frame(chrome, bg="#f7f7fa")
+        dots = self.themed_frame(chrome, "chrome")
         dots.pack(side="left", padx=(0, 14))
         for color in ("#ff5f57", "#febc2e", "#28c840"):
-            tk.Label(dots, text="●", fg=color, bg="#f7f7fa", font=(self.ui_font, 11)).pack(side="left", padx=2)
+            dot = tk.Label(
+                dots,
+                text="●",
+                fg=color,
+                font=(self.ui_font, 11),
+            )
+            self.register_tk_theme(dot, "chrome")
+            dot.pack(side="left", padx=2)
 
         ttk.Label(
             chrome,
             text="ChatGPT Batch Translator PRO",
             style="ChromeTitle.TLabel"
         ).pack(side="left")
+
+        theme_picker = ttk.Combobox(
+            chrome,
+            textvariable=self.theme_var,
+            values=list(THEME_VALUES.keys()),
+            state="readonly",
+            width=10,
+            style="Theme.TCombobox",
+        )
+        theme_picker.pack(side="right")
+        theme_picker.bind("<<ComboboxSelected>>", self.on_theme_changed)
+        ttk.Label(chrome, text="Giao diện", style="ChromeTitle.TLabel").pack(side="right", padx=(0, 8))
 
         body = ttk.Frame(outer, style="App.TFrame", padding=(12, 12, 12, 12))
         body.pack(fill="both", expand=True)
@@ -315,33 +575,33 @@ class ChatGPTBatchApp:
         ).pack(anchor="w", pady=(6, 16))
 
         self.status_var = tk.StringVar(value="Sẵn sàng")
-        status_box = tk.Frame(sidebar, bg="#ffffff", padx=12, pady=12)
+        status_box = self.themed_frame(sidebar, "surface", padx=12, pady=12)
         status_box.pack(fill="x", pady=(0, 14))
-        tk.Label(
+        self.themed_label(
             status_box,
+            "surface",
+            "muted",
             text="Trạng thái",
-            bg="#ffffff",
-            fg="#667085",
             font=(self.ui_font, 9, "bold")
         ).pack(anchor="w")
-        tk.Label(
+        self.themed_label(
             status_box,
+            "surface",
+            "text",
             textvariable=self.status_var,
-            bg="#ffffff",
-            fg="#111827",
             font=(self.ui_font, 10, "bold"),
             wraplength=260,
             justify="left"
         ).pack(anchor="w", pady=(6, 0))
 
         self.progress_var = tk.DoubleVar(value=0)
-        progress_box = tk.Frame(sidebar, bg="#ffffff", padx=12, pady=12)
+        progress_box = self.themed_frame(sidebar, "surface", padx=12, pady=12)
         progress_box.pack(fill="x", pady=(0, 14))
-        tk.Label(
+        self.themed_label(
             progress_box,
+            "surface",
+            "muted",
             text="Tiến trình",
-            bg="#ffffff",
-            fg="#667085",
             font=(self.ui_font, 9, "bold")
         ).pack(anchor="w")
         ttk.Progressbar(
@@ -352,11 +612,11 @@ class ChatGPTBatchApp:
         ).pack(fill="x", pady=(8, 5))
 
         self.progress_label = tk.StringVar(value="Tiến trình: 0%")
-        tk.Label(
+        self.themed_label(
             progress_box,
+            "surface",
+            "muted",
             textvariable=self.progress_label,
-            bg="#ffffff",
-            fg="#667085",
             font=(self.ui_font, 9),
             wraplength=260,
             justify="left"
@@ -475,22 +735,35 @@ class ChatGPTBatchApp:
             style="SectionTitle.TLabel"
         ).pack(anchor="w", pady=(0, 5))
 
-        self.log_text = ScrolledText(
-            log_card,
+        log_frame = ttk.Frame(log_card, style="Card.TFrame")
+        log_frame.pack(fill="both", expand=True)
+
+        palette = self.palette()
+        self.log_text = tk.Text(
+            log_frame,
             wrap="word",
             font=(self.mono_font, 10),
-            bg="#f8fafc",
-            fg="#182230",
-            insertbackground="#111827",
-            selectbackground="#c7ddff",
-            selectforeground="#111827",
+            bg=palette["log_bg"],
+            fg=palette["log_text"],
+            insertbackground=palette["text"],
+            selectbackground=palette["selection_bg"],
+            selectforeground=palette["selection_text"],
             relief="flat",
             borderwidth=0,
             padx=12,
             pady=12,
             height=20
         )
-        self.log_text.pack(fill="both", expand=True)
+        self.log_scrollbar = ttk.Scrollbar(
+            log_frame,
+            orient="vertical",
+            command=self.log_text.yview,
+            style="Log.Vertical.TScrollbar",
+        )
+        self.log_text.configure(yscrollcommand=self.log_scrollbar.set)
+        self.log_text.pack(side="left", fill="both", expand=True)
+        self.log_scrollbar.pack(side="right", fill="y")
+        self.apply_theme_styles()
 
     def add_folder_row(self, parent, label, var, row):
         ttk.Label(parent, text=label, style="Field.TLabel").grid(row=row, column=0, sticky="w", padx=(0, 12), pady=3)
