@@ -4,6 +4,8 @@
 
 Ứng dụng desktop giúp xử lý hàng loạt ảnh sách/truyện bằng ChatGPT: upload ảnh, yêu cầu chép lại nguyên văn, dịch bản chép lại, tạo ảnh Việt hóa, tải ảnh kết quả và ghi tiến trình để có thể chạy tiếp hoặc retry.
 
+<img width="1283" height="886" alt="image" src="https://github.com/user-attachments/assets/4b6ab3b8-17e1-4eda-a227-7467dd7573b3" />
+
 > Dự án này là công cụ tự động hóa cá nhân, không phải sản phẩm chính thức của OpenAI/ChatGPT. Người dùng chịu trách nhiệm đảm bảo họ có quyền xử lý, dịch, tạo lại, lưu trữ và phân phối nội dung được đưa vào app.
 
 ## Tính năng
