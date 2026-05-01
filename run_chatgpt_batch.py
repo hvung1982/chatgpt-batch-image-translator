@@ -73,7 +73,7 @@ IMAGE_WAIT_TIMEOUT = 1800
 SEND_VERIFY_TIMEOUT = 45
 
 PROMPT_CHEP_LAI = "chép lại nguyên văn"
-PROMPT_DICH = "Dịch"
+PROMPT_DICH = "dịch bản chép lại"
 PROMPT_TAO_ANH = "Tạo ảnh với bản dịch"
 
 IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp"]
