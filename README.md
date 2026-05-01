@@ -4,7 +4,7 @@
 
 Ứng dụng desktop giúp xử lý hàng loạt ảnh sách/truyện bằng ChatGPT: upload ảnh, yêu cầu chép lại nguyên văn, dịch bản chép lại, tạo ảnh Việt hóa, tải ảnh kết quả và ghi tiến trình để có thể chạy tiếp hoặc retry.
 
-> Dự án này là công cụ tự động hóa cá nhân. Nó không phải sản phẩm chính thức của OpenAI/ChatGPT.
+> Dự án này là công cụ tự động hóa cá nhân, không phải sản phẩm chính thức của OpenAI/ChatGPT. Người dùng chịu trách nhiệm đảm bảo họ có quyền xử lý, dịch, tạo lại, lưu trữ và phân phối nội dung được đưa vào app.
 
 ## Tính năng
 
@@ -114,6 +114,15 @@ Không đưa các thư mục/file sau lên GitHub hoặc vào bản phát hành 
 
 Mỗi người dùng nên có profile ChatGPT, thư mục ảnh và cấu hình riêng trên máy của họ.
 
+## Public repo và đóng góp
+
+- License: xem [LICENSE](LICENSE).
+- Hướng dẫn đóng góp: xem [CONTRIBUTING.md](CONTRIBUTING.md).
+- Báo cáo vấn đề bảo mật hoặc dữ liệu nhạy cảm: xem [SECURITY.md](SECURITY.md).
+- Trước khi tạo release công khai: xem [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
+
+Khi mở issue, đừng đăng cookie, session ChatGPT, profile browser, ảnh riêng tư, log có đường dẫn cá nhân, hoặc nội dung sách/truyện không có quyền chia sẻ.
+
 ## Ghi chú macOS
 
 Trên macOS, settings và profile mặc định được lưu tại:
@@ -134,7 +143,7 @@ System Settings > Privacy & Security > Files and Folders
 
 Desktop app for batch-processing book/comic images with ChatGPT: upload an image, ask ChatGPT to transcribe it verbatim, translate the copied text, generate a localized image, download the result, and keep progress so the batch can continue or retry later.
 
-> This is a personal automation tool. It is not an official OpenAI/ChatGPT product.
+> This is a personal automation tool, not an official OpenAI/ChatGPT product. Users are responsible for making sure they have the rights to process, translate, recreate, store, and distribute any content they use with the app.
 
 ## Features
 
@@ -243,6 +252,15 @@ Do not commit or publish these files/folders:
 - personal output/build folders
 
 Each user should keep their own ChatGPT profile, image folders, and local settings.
+
+## Public Repository and Contributions
+
+- License: see [LICENSE](LICENSE).
+- Contribution guide: see [CONTRIBUTING.md](CONTRIBUTING.md).
+- Security and sensitive-data reporting: see [SECURITY.md](SECURITY.md).
+- Before publishing a public release: see [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
+
+When opening an issue, do not post cookies, ChatGPT sessions, browser profiles, private images, logs with personal paths, or book/comic content you do not have permission to share.
 
 ## macOS Notes
 
