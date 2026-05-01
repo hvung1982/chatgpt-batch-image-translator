@@ -11,6 +11,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 
+try:
+    import winreg
+except ImportError:
+    winreg = None
+
 
 def get_app_dir():
     if getattr(sys, "frozen", False):
@@ -224,6 +229,24 @@ class ChatGPTBatchApp:
         code = self.settings.get("theme", DEFAULT_SETTINGS["theme"])
         return code if code in THEME_OPTIONS["en"] else DEFAULT_SETTINGS["theme"]
 
+    def effective_theme_code(self):
+        code = self.theme_code()
+        if code != "system":
+            return code
+        return "dark" if self.system_uses_dark_apps() else "light"
+
+    def system_uses_dark_apps(self):
+        if os.name != "nt" or winreg is None:
+            return False
+
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+                value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+                return int(value) == 0
+        except Exception:
+            return False
+
     def current_theme_label(self):
         return THEME_OPTIONS[self.language_code()][self.theme_code()]
 
@@ -298,7 +321,7 @@ class ChatGPTBatchApp:
         return button
 
     def get_palette(self):
-        if self.theme_code() == "dark":
+        if self.effective_theme_code() == "dark":
             return {
                 "app_bg": "#111827",
                 "chrome_bg": "#1f2937",
@@ -312,6 +335,9 @@ class ChatGPTBatchApp:
                 "border": "#475467",
                 "gray_btn": "#344054",
                 "gray_btn_active": "#475467",
+                "scroll_track": "#1f2937",
+                "scroll_thumb": "#9aa4b2",
+                "scroll_arrow": "#d0d5dd",
                 "selection": "#355f9f"
             }
 
@@ -328,6 +354,9 @@ class ChatGPTBatchApp:
             "border": "#d0d5dd",
             "gray_btn": "#f2f4f7",
             "gray_btn_active": "#e4e7ec",
+            "scroll_track": "#e4e7ec",
+            "scroll_thumb": "#98a2b3",
+            "scroll_arrow": "#344054",
             "selection": "#c7ddff"
         }
 
@@ -374,7 +403,7 @@ class ChatGPTBatchApp:
             "SidebarTitle.TLabel",
             background=c["sidebar_bg"],
             foreground=c["text"],
-            font=("Segoe UI", 14, "bold")
+            font=("Segoe UI", 13, "bold")
         )
 
         self.style.configure(
@@ -503,7 +532,7 @@ class ChatGPTBatchApp:
             background=c["card_bg"],
             foreground=c["field"],
             font=("Segoe UI", 10),
-            padding=(12, 8),
+            padding=(12, 7),
             borderwidth=0
         )
 
@@ -543,7 +572,7 @@ class ChatGPTBatchApp:
         try:
             self.root.update_idletasks()
             hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id()) or self.root.winfo_id()
-            enabled = ctypes.c_int(1 if self.theme_code() == "dark" else 0)
+            enabled = ctypes.c_int(1 if self.effective_theme_code() == "dark" else 0)
             for attribute in (20, 19):
                 result = ctypes.windll.dwmapi.DwmSetWindowAttribute(
                     ctypes.c_void_p(hwnd),
@@ -625,18 +654,24 @@ class ChatGPTBatchApp:
         sidebar.pack_propagate(False)
         sidebar.configure(width=280)
 
-        ttk.Label(sidebar, text=self.t("sidebar_title"), style="SidebarTitle.TLabel").pack(anchor="w")
+        ttk.Label(
+            sidebar,
+            text=self.t("sidebar_title"),
+            style="SidebarTitle.TLabel",
+            wraplength=230,
+            justify="left"
+        ).pack(anchor="w")
         ttk.Label(
             sidebar,
             text=self.t("sidebar_desc"),
             style="SidebarSub.TLabel",
             wraplength=235,
             justify="left"
-        ).pack(anchor="w", pady=(6, 16))
+        ).pack(anchor="w", pady=(4, 12))
 
         self.status_var = tk.StringVar(value=self.t("status_ready"))
-        status_box = tk.Frame(sidebar, bg=c["card_bg"], padx=12, pady=12)
-        status_box.pack(fill="x", pady=(0, 14))
+        status_box = tk.Frame(sidebar, bg=c["card_bg"], padx=12, pady=10)
+        status_box.pack(fill="x", pady=(0, 10))
         tk.Label(
             status_box,
             text=self.t("status_label"),
@@ -655,8 +690,8 @@ class ChatGPTBatchApp:
         ).pack(anchor="w", pady=(6, 0))
 
         self.progress_var = tk.DoubleVar(value=0)
-        progress_box = tk.Frame(sidebar, bg=c["card_bg"], padx=12, pady=12)
-        progress_box.pack(fill="x", pady=(0, 14))
+        progress_box = tk.Frame(sidebar, bg=c["card_bg"], padx=12, pady=10)
+        progress_box.pack(fill="x", pady=(0, 10))
         tk.Label(
             progress_box,
             text=self.t("progress_label"),
@@ -682,12 +717,12 @@ class ChatGPTBatchApp:
             justify="left"
         ).pack(anchor="w")
 
-        ttk.Label(sidebar, text=self.t("quick_actions"), style="SidebarSub.TLabel").pack(anchor="w", pady=(8, 8))
-        ttk.Button(sidebar, text=self.t("open_output"), command=self.open_output, style="Ghost.TButton").pack(fill="x", pady=3)
-        ttk.Button(sidebar, text=self.t("export_failed"), command=self.export_failed, style="Ghost.TButton").pack(fill="x", pady=3)
-        ttk.Button(sidebar, text=self.t("copy_failed"), command=self.copy_failed_retry, style="Ghost.TButton").pack(fill="x", pady=3)
-        ttk.Button(sidebar, text=self.t("save_config"), command=self.save_and_notify, style="Ghost.TButton").pack(fill="x", pady=3)
-        ttk.Button(sidebar, text=self.t("clear_log"), command=self.clear_log, style="Ghost.TButton").pack(fill="x", pady=3)
+        ttk.Label(sidebar, text=self.t("quick_actions"), style="SidebarSub.TLabel").pack(anchor="w", pady=(6, 6))
+        ttk.Button(sidebar, text=self.t("open_output"), command=self.open_output, style="Ghost.TButton").pack(fill="x", pady=2)
+        ttk.Button(sidebar, text=self.t("export_failed"), command=self.export_failed, style="Ghost.TButton").pack(fill="x", pady=2)
+        ttk.Button(sidebar, text=self.t("copy_failed"), command=self.copy_failed_retry, style="Ghost.TButton").pack(fill="x", pady=2)
+        ttk.Button(sidebar, text=self.t("save_config"), command=self.save_and_notify, style="Ghost.TButton").pack(fill="x", pady=2)
+        ttk.Button(sidebar, text=self.t("clear_log"), command=self.clear_log, style="Ghost.TButton").pack(fill="x", pady=2)
 
         main = ttk.Frame(body, style="Main.TFrame")
         main.pack(side="left", fill="both", expand=True)
@@ -817,7 +852,7 @@ class ChatGPTBatchApp:
         self.log_scroll_canvas = tk.Canvas(
             log_body,
             width=18,
-            bg=c["log_bg"],
+            bg=c["scroll_track"],
             highlightthickness=0,
             bd=0,
             cursor="hand2"
@@ -827,6 +862,7 @@ class ChatGPTBatchApp:
         self.log_scroll_canvas.bind("<Button-1>", self.on_log_scrollbar_click)
         self.log_scroll_canvas.bind("<B1-Motion>", self.on_log_scrollbar_drag)
         self.log_scroll_canvas.bind("<Configure>", lambda event: self.update_log_scrollbar(*self.log_text.yview()))
+        self.root.after(50, lambda: self.update_log_scrollbar(*self.log_text.yview()))
 
         if self.proc and self.proc.poll() is None:
             self.status_var.set(self.t("status_running"))
@@ -844,7 +880,7 @@ class ChatGPTBatchApp:
         last = float(last)
         width = int(canvas.winfo_width() or 18)
         height = int(canvas.winfo_height() or 1)
-        arrow_h = min(18, max(12, height // 5))
+        arrow_h = 18
         track_top = arrow_h
         track_bottom = max(track_top + 1, height - arrow_h)
         track_height = track_bottom - track_top
@@ -854,41 +890,33 @@ class ChatGPTBatchApp:
             thumb_bottom = min(track_bottom, thumb_top + 22)
 
         canvas.delete("all")
-        canvas.create_rectangle(0, 0, width, height, fill=c["log_bg"], outline="")
+        canvas.create_rectangle(0, 0, width, height, fill=c["scroll_track"], outline="")
         canvas.create_polygon(
             width // 2, 5,
-            5, arrow_h - 5,
-            width - 5, arrow_h - 5,
-            fill=c["text"],
+            width // 2 - 5, 12,
+            width // 2 + 5, 12,
+            fill=c["scroll_arrow"],
             outline=""
         )
         canvas.create_rectangle(
-            5,
-            track_top + 4,
-            width - 5,
-            track_bottom - 4,
-            fill=c["gray_btn"],
-            outline=""
-        )
-        canvas.create_rectangle(
-            4,
+            width // 2 - 4,
             thumb_top,
-            width - 4,
+            width // 2 + 4,
             thumb_bottom,
-            fill=c["gray_btn_active"],
+            fill=c["scroll_thumb"],
             outline=""
         )
         canvas.create_polygon(
-            5, height - arrow_h + 5,
-            width - 5, height - arrow_h + 5,
+            width // 2 - 5, height - 12,
+            width // 2 + 5, height - 12,
             width // 2, height - 5,
-            fill=c["text"],
+            fill=c["scroll_arrow"],
             outline=""
         )
 
     def on_log_scrollbar_click(self, event):
         height = int(self.log_scroll_canvas.winfo_height() or 1)
-        arrow_h = min(18, max(12, height // 5))
+        arrow_h = 18
         if event.y < arrow_h:
             self.log_text.yview_scroll(-1, "units")
             return
@@ -899,7 +927,7 @@ class ChatGPTBatchApp:
 
     def on_log_scrollbar_drag(self, event):
         height = int(self.log_scroll_canvas.winfo_height() or 1)
-        arrow_h = min(18, max(12, height // 5))
+        arrow_h = 18
         track_height = max(1, height - arrow_h * 2)
         fraction = (event.y - arrow_h) / track_height
         self.log_text.yview_moveto(min(max(fraction, 0), 1))
