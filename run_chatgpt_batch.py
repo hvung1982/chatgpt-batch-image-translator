@@ -72,6 +72,7 @@ MAX_RETRY_DICH = 3
 IMAGE_WAIT_TIMEOUT = 1800
 SEND_VERIFY_TIMEOUT = 45
 
+PROMPT_CHEP_LAI = "chép lại nguyên văn"
 PROMPT_DICH = "Dịch"
 PROMPT_TAO_ANH = "Tạo ảnh với bản dịch"
 
@@ -929,6 +930,15 @@ def get_latest_new_image(page, old_list):
 
 def run_dich_step(page):
     for attempt in range(1, MAX_RETRY_DICH + 1):
+        print(f"→ Chép lại nguyên văn lần {attempt}")
+
+        send_prompt(page, PROMPT_CHEP_LAI)
+
+        if not wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_text=PROMPT_CHEP_LAI):
+            print("⚠ Bước chép lại nguyên văn quá thời gian → thử lại")
+            sleep(8)
+            continue
+
         print(f"→ Dịch lần {attempt}")
 
         send_prompt(page, PROMPT_DICH)
