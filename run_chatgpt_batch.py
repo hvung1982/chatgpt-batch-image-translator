@@ -641,11 +641,73 @@ def is_generating(page):
         pass
 
     try:
+        running = page.evaluate("""
+            () => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                for (const button of buttons) {
+                    const label = (
+                        button.getAttribute('aria-label') ||
+                        button.getAttribute('data-testid') ||
+                        button.innerText ||
+                        ''
+                    ).toLowerCase();
+
+                    if (
+                        label.includes('stop-button') ||
+                        label.includes('stop generating') ||
+                        label.includes('stop streaming') ||
+                        label.includes('dừng tạo') ||
+                        label.includes('dừng phản hồi')
+                    ) {
+                        const rect = button.getBoundingClientRect();
+                        const style = window.getComputedStyle(button);
+                        if (
+                            rect.width > 0 &&
+                            rect.height > 0 &&
+                            style.visibility !== 'hidden' &&
+                            style.display !== 'none'
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+
+                const liveRegions = Array.from(document.querySelectorAll(
+                    '[aria-live], [role="status"], [data-testid*="status"], [data-testid*="toast"]'
+                ));
+                const statusText = liveRegions
+                    .map((el) => el.innerText || el.textContent || '')
+                    .join('\\n')
+                    .toLowerCase();
+
+                return [
+                    'analyzing image',
+                    'đang phân tích',
+                    'thinking...',
+                    'thinking…',
+                    'đang suy nghĩ',
+                    'creating image',
+                    'đang tạo ảnh',
+                    'generating',
+                    'đang tạo',
+                    'working on it',
+                    'i’m working',
+                    "i'm working"
+                ].some((marker) => statusText.includes(marker));
+            }
+        """)
+        if running:
+            return True
+    except Exception:
+        pass
+
+    try:
         text = page.locator("body").inner_text(timeout=1000).lower()
         markers = [
             "analyzing image",
             "đang phân tích",
-            "thinking",
+            "thinking...",
+            "thinking…",
             "đang suy nghĩ",
             "creating image",
             "đang tạo ảnh",
@@ -653,8 +715,7 @@ def is_generating(page):
             "đang tạo",
             "working on it",
             "i’m working",
-            "i'm working",
-            "in progress"
+            "i'm working"
         ]
         return any(m in text for m in markers)
     except Exception:
@@ -820,7 +881,97 @@ def send_prompt(page, text, max_send_attempts=4):
     raise Exception(f"Không gửi được prompt sau {max_send_attempts} lần: {last_error}")
 
 
-def wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_text=None):
+def get_assistant_response_signature(page):
+    try:
+        return page.evaluate("""
+            () => {
+                let nodes = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]'));
+
+                if (nodes.length === 0) {
+                    nodes = Array.from(document.querySelectorAll('.markdown')).filter((node) => {
+                        const text = (node.innerText || node.textContent || '').trim();
+                        return text.length > 0 && !node.closest('#prompt-textarea');
+                    });
+                }
+
+                const texts = nodes
+                    .map((node) => (node.innerText || node.textContent || '').trim())
+                    .filter((text) => text.length > 0);
+                const last = texts.length ? texts[texts.length - 1] : '';
+
+                return {
+                    count: texts.length,
+                    last_len: last.length,
+                    last_tail: last.slice(-500)
+                };
+            }
+        """)
+    except Exception:
+        return {"count": 0, "last_len": 0, "last_tail": ""}
+
+
+def has_new_assistant_response(page, before_signature):
+    if not before_signature:
+        return False
+
+    current = get_assistant_response_signature(page)
+    before_count = int(before_signature.get("count") or 0)
+    before_len = int(before_signature.get("last_len") or 0)
+    before_tail = before_signature.get("last_tail") or ""
+    current_count = int(current.get("count") or 0)
+    current_len = int(current.get("last_len") or 0)
+    current_tail = current.get("last_tail") or ""
+
+    if current_count > before_count and current_len >= 20:
+        return True
+
+    if current_count >= before_count and current_len >= 20:
+        if current_tail and current_tail != before_tail:
+            return True
+        if current_len > before_len + 20:
+            return True
+
+    return False
+
+
+def wait_assistant_response_stable(page, before_signature, stable_seconds=6, timeout=900):
+    start = time.time()
+    last_signature = None
+    stable_start = None
+
+    while time.time() - start < timeout:
+        wait_if_cloudflare(page)
+
+        if is_generating(page):
+            stable_start = None
+            last_signature = None
+            sleep(2)
+            continue
+
+        if not has_new_assistant_response(page, before_signature):
+            sleep(2)
+            continue
+
+        current = get_assistant_response_signature(page)
+        comparable = (
+            int(current.get("count") or 0),
+            int(current.get("last_len") or 0),
+            current.get("last_tail") or ""
+        )
+
+        if comparable == last_signature:
+            if stable_start and time.time() - stable_start >= stable_seconds:
+                return True
+        else:
+            last_signature = comparable
+            stable_start = time.time()
+
+        sleep(1)
+
+    return False
+
+
+def wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_text=None, before_signature=None):
     """
     Chờ phản hồi bản chống treo.
 
@@ -835,7 +986,7 @@ def wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_te
     while time.time() - start < timeout_start:
         wait_if_cloudflare(page)
 
-        if is_generating(page):
+        if is_generating(page) or has_new_assistant_response(page, before_signature):
             started = True
             break
 
@@ -849,6 +1000,7 @@ def wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_te
             if resend_text in current_text:
                 print("↻ Prompt vẫn còn trong ô nhập, thử gửi lại một lần")
                 try:
+                    before_signature = get_assistant_response_signature(page)
                     send_prompt(page, resend_text, max_send_attempts=2)
                 except Exception as e:
                     print(f"⚠ Gửi lại prompt lỗi: {e}")
@@ -856,7 +1008,7 @@ def wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_te
                 start2 = time.time()
                 while time.time() - start2 < timeout_start:
                     wait_if_cloudflare(page)
-                    if is_generating(page):
+                    if is_generating(page) or has_new_assistant_response(page, before_signature):
                         started = True
                         break
                     sleep(1)
@@ -871,6 +1023,14 @@ def wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_te
 
     while time.time() - start < timeout_done:
         wait_if_cloudflare(page)
+
+        if before_signature and has_new_assistant_response(page, before_signature):
+            return wait_assistant_response_stable(
+                page,
+                before_signature,
+                stable_seconds=6,
+                timeout=max(30, int(timeout_done - (time.time() - start)))
+            )
 
         if not is_generating(page):
             sleep(5)
@@ -932,18 +1092,32 @@ def run_dich_step(page):
     for attempt in range(1, MAX_RETRY_DICH + 1):
         print(f"→ Chép lại nguyên văn lần {attempt}")
 
+        before_response = get_assistant_response_signature(page)
         send_prompt(page, PROMPT_CHEP_LAI)
 
-        if not wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_text=PROMPT_CHEP_LAI):
+        if not wait_response_after_send(
+            page,
+            timeout_start=90,
+            timeout_done=900,
+            resend_text=PROMPT_CHEP_LAI,
+            before_signature=before_response
+        ):
             print("⚠ Bước chép lại nguyên văn quá thời gian → thử lại")
             sleep(8)
             continue
 
         print(f"→ Dịch lần {attempt}")
 
+        before_response = get_assistant_response_signature(page)
         send_prompt(page, PROMPT_DICH)
 
-        if wait_response_after_send(page, timeout_start=90, timeout_done=900, resend_text=PROMPT_DICH):
+        if wait_response_after_send(
+            page,
+            timeout_start=90,
+            timeout_done=900,
+            resend_text=PROMPT_DICH,
+            before_signature=before_response
+        ):
             return True
 
         print("⚠ Bước Dịch quá thời gian → thử lại")
